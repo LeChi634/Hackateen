@@ -1,0 +1,9 @@
+
+/* home.css — hero centralizado */
+.hero{ padding: var(--space-8) 0; }
+.hero .container{ display:grid; grid-template-columns: 1.1fr 0.9fr; align-items:center; gap: var(--space-6); }
+.hero .title{ font-size: clamp(32px, 5vw, 54px); font-weight: 800; line-height:1.1; margin: var(--space-3) 0 var(--space-2); }
+.hero .desc{ color: var(--muted); margin-bottom: var(--space-4); font-size: var(--fs-md); }
+.hero .cta{ display:flex; gap: var(--space-3); flex-wrap:wrap; }
+.hero-illu{ width: 100%; height: auto; display:block; border-radius: 8px; }
+@media (max-width: 960px){ .hero .container{ grid-template-columns: 1fr; } .hero .cta{ justify-content:flex-start; } }
