@@ -99,3 +99,6 @@ html, body{ height:100%; margin:0; font-family:Arial, sans-serif; }
   display:block !important;
   padding-top:0 !important;
 }
+
+
+.btn-submit:disabled{ opacity:.7; cursor:not-allowed; filter:grayscale(20%); }
