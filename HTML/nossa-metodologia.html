@@ -228,112 +228,119 @@
 
 
 <script>
-  /* Pomodoro Timer */
-  (() => {
+/* Pomodoro Timer — fix IDs + cycle label + safe listeners (Levi) */
+(() => {
+  const $ = (id) => document.getElementById(id);
   const els = {
-  phase: document.getElementById('pomo-phase'),
-  mm: document.getElementById('pomo-mm'),
-  ss: document.getElementById('pomo-ss'),
-  bar: document.getElementById('pomo-bar'),
-  start: document.getElementById('pomo-start'),
-  pause: document.getElementById('pomo-pause'),
-  reset: document.getElementById('pomo-reset'),
-  focus: document.getElementById('pomo-focus'),
-  short: document.getElementById('pomo-short'),
-  long: document.getElementById('pomo-long'),
-  cycles: document.getElementById('pomo-cycles'),
+    phase: $('pomo-phase'),
+    mm: $('pomo-mm'),
+    ss: $('pomo-ss'),
+    bar: $('pomo-bar'),
+    start: $('pomo-start'),
+    pause: $('pomo-pause'),
+    reset: $('pomo-reset'),
+    // IDs corretos conforme o HTML:
+    focus: $('focus'),
+    short: $('short'),
+    long: $('long'),
+    cycles: $('pomo-cycles'),
+    cycle: $('pomo-cycle'),
   };
   if (!els.start) return;
 
-  const ctxAudio = (window.AudioContext || window.webkitAudioContext) ? new (window.AudioContext||window.webkitAudioContext)() : null;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const ctxAudio = Ctx ? new Ctx() : null;
 
   let state = { phase: 'focus', cycle: 1, total: 0, left: 0, running: false, timer: null, base: 0 };
-  function ms(min){ return Math.round(min*60*1000); }
+
+  const ms = (min) => Math.round(min * 60 * 1000);
   function format(t){
-  const m = Math.floor(t/60000), s = Math.floor((t%60000)/1000);
-  els.mm.textContent = String(m).padStart(2,'0');
-  els.ss.textContent = String(s).padStart(2,'0');
+    const m = Math.floor(t/60000), s = Math.floor((t%60000)/1000);
+    els.mm.textContent = String(m).padStart(2,'0');
+    els.ss.textContent = String(s).padStart(2,'0');
   }
   function progress(){
-  const p = 1 - (state.left/state.total || 0);
-  els.bar.style.width = (p*100).toFixed(1)+'%';
+    const p = 1 - (state.left/state.total || 0);
+    if (els.bar) els.bar.style.width = (p * 100).toFixed(1) + '%';
   }
   function label(){
-  els.phase.textContent = state.phase === 'focus' ? 'Foco' : (state.phase === 'short' ? 'Pausa Curta' : 'Pausa Longa');
+    els.phase.textContent = state.phase === 'focus' ? 'Foco' : (state.phase === 'short' ? 'Pausa Curta' : 'Pausa Longa');
+    if (els.cycle) els.cycle.textContent = String(state.cycle);
   }
   function beep(){
-  if(!ctxAudio) return;
-  const o = ctxAudio.createOscillator(), g = ctxAudio.createGain();
-  o.type='sine'; o.frequency.value=880;
-  g.gain.value=0.001; g.connect(ctxAudio.destination);
-  o.connect(g); o.start();
-  const t = ctxAudio.currentTime;
-  g.gain.exponentialRampToValueAtTime(0.2, t+0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t+0.4);
-  o.stop(t+0.45);
+    if(!ctxAudio) return;
+    const o = ctxAudio.createOscillator(), g = ctxAudio.createGain();
+    o.type='sine'; o.frequency.value=880;
+    g.gain.value=0.001; g.connect(ctxAudio.destination); o.connect(g);
+    const t = ctxAudio.currentTime;
+    g.gain.exponentialRampToValueAtTime(0.2, t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.4);
+    o.start(); o.stop(t+0.45);
   }
   function setPhase(ph){
-  state.phase = ph; label();
-  if(ph==='focus') state.total = ms(+els.focus.value||25);
-  else if(ph==='short') state.total = ms(+els.short.value||5);
-  else state.total = ms(+els.long.value||15);
-  state.left = state.total;
-  state.base = Date.now();
-  format(state.left); progress();
+    state.phase = ph;
+    const mins = ph==='focus' ? (+els.focus.value||25)
+               : ph==='short' ? (+els.short.value||5)
+               : (+els.long.value||15);
+    state.total = ms(mins);
+    state.left  = state.total;
+    state.base  = Date.now();
+    label(); format(state.left); progress();
   }
   function next(){
-  beep();
-  if(state.phase==='focus'){
-  const max = +els.cycles.value||4;
-  state.phase = (state.cycle % max === 0) ? 'long' : 'short';
-  }else{
-  if(state.phase==='long') state.cycle = 0;
-  state.phase = 'focus';
-  state.cycle++;
-  }
-  setPhase(state.phase);
+    beep();
+    if (state.phase === 'focus'){
+      const max = +els.cycles.value || 4;
+      state.phase = (state.cycle % max === 0) ? 'long' : 'short';
+    } else {
+      if (state.phase === 'long') state.cycle = 0;
+      state.phase = 'focus';
+      state.cycle++;
+    }
+    setPhase(state.phase); // prepara a próxima fase, aguardando novo "Iniciar"
   }
   function tick(){
-  const now = Date.now();
-  const elapsed = now - state.base;
-  state.left = Math.max(0, state.total - elapsed);
-  format(state.left); progress();
-  if(state.left <= 0){
-  clearInterval(state.timer); state.running=false;
-  next(); // aguarda start manual para o próximo
-  }
+    const elapsed = Date.now() - state.base;
+    state.left = Math.max(0, state.total - elapsed);
+    format(state.left); progress();
+    if (state.left <= 0){
+      clearInterval(state.timer);
+      state.running = false;
+      next();
+    }
   }
   function start(){
-  if(state.running) return;
-  if(state.left<=0 || state.total<=0) setPhase(state.phase);
-  state.base = Date.now() - (state.total - state.left);
-  state.timer = setInterval(tick, 200);
-  state.running = true;
+    if (state.running) return;
+    if (state.left <= 0 || state.total <= 0) setPhase(state.phase);
+    state.base = Date.now() - (state.total - state.left);
+    state.timer = setInterval(tick, 250);
+    state.running = true;
   }
   function pause(){
-  if(!state.running) return;
-  clearInterval(state.timer);
-  state.running = false;
+    if (!state.running) return;
+    clearInterval(state.timer);
+    state.running = false;
   }
   function reset(){
-  pause();
-  setPhase('focus');
-  state.cycle = 1;
+    pause();
+    setPhase('focus');
+    state.cycle = 1;
+    label();
   }
 
   els.start.addEventListener('click', start);
   els.pause.addEventListener('click', pause);
   els.reset.addEventListener('click', reset);
 
-  ['focus','short','long','cycles'].forEach(id => {
-  els[id].addEventListener('change', () => {
-  if(!state.running){ setPhase(state.phase); }
-  });
+  ['focus','short','long','cycles'].forEach(k => {
+    if (els[k]) els[k].addEventListener('change', () => {
+      if (!state.running) setPhase(state.phase);
+    });
   });
 
   // init
   setPhase('focus');
-  })();
+})();
 </script>
 
 <script src="../JavaScript/menu.js"></script>
