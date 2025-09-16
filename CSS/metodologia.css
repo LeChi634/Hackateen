@@ -88,3 +88,32 @@
 }
 .pomo-chip.active{ background:#1d5fa3; color:#fff; border-color:#1d5fa3; }
 .pomo-meta{ text-align:center; color:#516b7a; font-size:14px; }
+
+/* === Pomodoro — padronizar botões e dar respiro (Levi fix) === */
+.pomo-controls{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-block:8px; /* espaço antes e depois dos três botões */
+}
+
+#pomo-start, #pomo-pause, #pomo-reset{
+  padding:10px 16px;
+  border-radius:10px;
+  font-weight:800;
+  min-width:110px;
+  text-align:center;
+  border:2px solid #1d5fa3;
+  background:#1d5fa3;
+  color:#fff;
+  transition: background .2s, border-color .2s, color .2s, transform .05s;
+}
+#pomo-start:hover, #pomo-pause:hover, #pomo-reset:hover{
+  background:#154e84;
+  border-color:#154e84;
+  color:#ffd05b;
+}
+#pomo-start:active, #pomo-pause:active, #pomo-reset:active{
+  transform: translateY(1px);
+}
